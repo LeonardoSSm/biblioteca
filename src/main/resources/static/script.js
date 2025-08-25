@@ -206,25 +206,125 @@ function displayLivros(livros) {
     `).join('');
 }
 
-// Funções para Alunos e Empréstimos (estrutura similar)
+// Função para carregar alunos
 async function loadAlunos() {
-    // Implementação similar às funções de autores e livros
-    document.getElementById('lista-alunos').innerHTML = `
-        <div class="empty-state">
-            <i class="fas fa-user-graduate"></i>
-            <p>Funcionalidade de alunos em desenvolvimento</p>
-        </div>
-    `;
+    showLoading();
+    try {
+        const response = await fetch(`${API_BASE_URL}/alunos`);
+        if (!response.ok) throw new Error('Erro ao carregar alunos');
+
+        const alunos = await response.json();
+        displayAlunos(alunos);
+    } catch (error) {
+        showError('Erro ao carregar alunos: ' + error.message);
+    } finally {
+        hideLoading();
+    }
 }
 
-async function loadEmprestimos() {
-    // Implementação similar às funções de autores e livros
-    document.getElementById('lista-emprestimos').innerHTML = `
-        <div class="empty-state">
-            <i class="fas fa-exchange-alt"></i>
-            <p>Funcionalidade de empréstimos em desenvolvimento</p>
+// Exibir alunos na lista
+function displayAlunos(alunos) {
+    const lista = document.getElementById('lista-alunos');
+    const searchTerm = document.getElementById('busca-aluno').value.toLowerCase();
+
+    const alunosFiltrados = searchTerm 
+        ? alunos.filter(aluno => 
+            aluno.nome.toLowerCase().includes(searchTerm) || 
+            (aluno.matricula && aluno.matricula.toLowerCase().includes(searchTerm)))
+        : alunos;
+
+    if (alunosFiltrados.length === 0) {
+        lista.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-user-graduate"></i>
+                <p>Nenhum aluno encontrado</p>
+            </div>
+        `;
+        return;
+    }
+
+    lista.innerHTML = alunosFiltrados.map(aluno => `
+        <div class="data-item">
+            <div class="data-info">
+                <h4>${aluno.nome}</h4>
+                <p>Matrícula: ${aluno.matricula || 'Não informada'}</p>
+                <p>ID: ${aluno.id}</p>
+            </div>
+            <div class="data-actions">
+                <button class="btn btn-primary" onclick="openAlunoModal(${aluno.id})">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+                <button class="btn btn-danger" onclick="deleteAluno(${aluno.id})">
+                    <i class="fas fa-trash"></i> Excluir
+                </button>
+            </div>
         </div>
-    `;
+    `).join('');
+}
+
+// Função para carregar empréstimos
+async function loadEmprestimos() {
+    showLoading();
+    try {
+        // CORREÇÃO: endpoint correto é /api/emprestimos, não /finalizar
+        const response = await fetch(`${API_BASE_URL}/emprestimos`);
+        if (!response.ok) throw new Error('Erro ao carregar empréstimos');
+
+        const emprestimos = await response.json();
+        displayEmprestimos(emprestimos);
+    } catch (error) {
+        showError('Erro ao carregar empréstimos: ' + error.message);
+    } finally {
+        hideLoading();
+    }
+}
+
+// Exibir empréstimos na lista
+function displayEmprestimos(emprestimos) {
+    const container = document.getElementById('emprestimos-container');
+    if (!container) {
+        console.error('Elemento emprestimos-container não encontrado');
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    if (emprestimos.length === 0) {
+        container.innerHTML = '<p class="no-data">Nenhum empréstimo encontrado</p>';
+        return;
+    }
+    
+    emprestimos.forEach(emprestimo => {
+        const card = document.createElement('div');
+        card.className = 'emprestimo-card';
+        
+        // Formatar datas
+        const dataEmprestimo = new Date(emprestimo.dataEmprestimo).toLocaleDateString('pt-BR');
+        const dataDevolucao = emprestimo.dataDevolucao 
+            ? new Date(emprestimo.dataDevolucao).toLocaleDateString('pt-BR')
+            : 'Não devolvido';
+        
+        card.innerHTML = `
+            <div class="emprestimo-header">
+                <h3>${emprestimo.livroTitulo || 'Livro não disponível'}</h3>
+                <span class="status ${emprestimo.status.toLowerCase()}">${emprestimo.status}</span>
+            </div>
+            <div class="emprestimo-details">
+                <p><strong>Aluno:</strong> ${emprestimo.alunoNome || 'N/A'}</p>
+                <p><strong>Data do empréstimo:</strong> ${dataEmprestimo}</p>
+                <p><strong>Data de devolução:</strong> ${dataDevolucao}</p>
+                <p><strong>Status:</strong> ${emprestimo.status}</p>
+            </div>
+            ${emprestimo.status === 'ATIVO' ? 
+                `<button class="btn-finalizar" onclick="finalizarEmprestimo(${emprestimo.id})">
+                    Finalizar Empréstimo
+                </button>` : 
+                ''
+            }
+        `;
+        
+        container.appendChild(card);
+    });
 }
 
 // Modal para autores
@@ -336,8 +436,84 @@ function openAlunoModal() {
     alert('Funcionalidade de alunos em desenvolvimento');
 }
 
-function openEmprestimoModal() {
-    alert('Funcionalidade de empréstimos em desenvolvimento');
+// Modal para criar ou editar empréstimos
+async function openEmprestimoModal(emprestimoId = null) {
+    editingItem = emprestimoId;
+    const modal = document.getElementById('modal');
+    const form = document.getElementById('modal-form');
+
+    // Configurar título do modal
+    document.getElementById('modal-titulo').textContent = 
+        emprestimoId ? 'Editar Empréstimo' : 'Novo Empréstimo';
+
+    // Carregar dados do empréstimo se for edição
+    let emprestimoData = {};
+    if (emprestimoId) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/emprestimos/${emprestimoId}`);
+            if (response.ok) {
+                emprestimoData = await response.json();
+            }
+        } catch (error) {
+            showError('Erro ao carregar dados do empréstimo');
+        }
+    }
+
+    // Carregar livros e alunos para os selects
+    let livros = [];
+    let alunos = [];
+    try {
+        const [livrosResponse, alunosResponse] = await Promise.all([
+            fetch(`${API_BASE_URL}/livros`),
+            fetch(`${API_BASE_URL}/alunos`)
+        ]);
+
+        if (livrosResponse.ok) livros = await livrosResponse.json();
+        if (alunosResponse.ok) alunos = await alunosResponse.json();
+    } catch (error) {
+        console.error('Erro ao carregar livros ou alunos:', error);
+    }
+
+    // Construir formulário
+    form.innerHTML = `
+        <div class="form-group">
+            <label for="emprestimo-livro">Livro</label>
+            <select id="emprestimo-livro" required>
+                <option value="">Selecione um livro</option>
+                ${livros.map(livro => `
+                    <option value="${livro.id}" ${emprestimoData.livro && emprestimoData.livro.id === livro.id ? 'selected' : ''}>
+                        ${livro.titulo}
+                    </option>
+                `).join('')}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="emprestimo-aluno">Aluno</label>
+            <select id="emprestimo-aluno" required>
+                <option value="">Selecione um aluno</option>
+                ${alunos.map(aluno => `
+                    <option value="${aluno.id}" ${emprestimoData.aluno && emprestimoData.aluno.id === aluno.id ? 'selected' : ''}>
+                        ${aluno.nome}
+                    </option>
+                `).join('')}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="emprestimo-data">Data de Empréstimo</label>
+            <input type="date" id="emprestimo-data" value="${emprestimoData.dataEmprestimo || ''}" required>
+        </div>
+        <div class="form-group">
+            <label for="emprestimo-status">Status</label>
+            <select id="emprestimo-status" required>
+                <option value="ATIVO" ${emprestimoData.status === 'ATIVO' ? 'selected' : ''}>ATIVO</option>
+                <option value="FINALIZADO" ${emprestimoData.status === 'FINALIZADO' ? 'selected' : ''}>FINALIZADO</option>
+                <option value="ATRASADO" ${emprestimoData.status === 'ATRASADO' ? 'selected' : ''}>ATRASADO</option>
+            </select>
+        </div>
+    `;
+
+    // Mostrar modal
+    modal.style.display = 'block';
 }
 
 // Salvar dados do modal
@@ -380,6 +556,26 @@ async function saveModalData() {
                 url = `${API_BASE_URL}/livros`;
                 method = 'POST';
             }
+        } else if (currentTab === 'emprestimos') {
+            const livroId = document.getElementById('emprestimo-livro').value;
+            const alunoId = document.getElementById('emprestimo-aluno').value;
+            const dataEmprestimo = document.getElementById('emprestimo-data').value;
+            const status = document.getElementById('emprestimo-status').value;
+
+            body = JSON.stringify({
+                livro: { id: parseInt(livroId) },
+                aluno: { id: parseInt(alunoId) },
+                dataEmprestimo,
+                status
+            });
+
+            if (editingItem) {
+                url = `${API_BASE_URL}/emprestimos/${editingItem}`;
+                method = 'PUT';
+            } else {
+                url = `${API_BASE_URL}/emprestimos`;
+                method = 'POST';
+            }
         }
         
         const response = await fetch(url, {
@@ -401,6 +597,9 @@ async function saveModalData() {
                 break;
             case 'livros':
                 loadLivros();
+                break;
+            case 'emprestimos':
+                loadEmprestimos();
                 break;
         }
         
@@ -452,6 +651,46 @@ async function deleteLivro(id) {
         loadLivros();
     } catch (error) {
         showError('Erro ao excluir livro: ' + error.message);
+    } finally {
+        hideLoading();
+    }
+}
+
+// Excluir aluno
+async function deleteAluno(id) {
+    if (!confirm('Tem certeza que deseja excluir este aluno?')) return;
+
+    showLoading();
+    try {
+        const response = await fetch(`${API_BASE_URL}/alunos/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error('Erro ao excluir aluno');
+
+        loadAlunos();
+    } catch (error) {
+        showError('Erro ao excluir aluno: ' + error.message);
+    } finally {
+        hideLoading();
+    }
+}
+
+// Excluir empréstimo
+async function deleteEmprestimo(id) {
+    if (!confirm('Tem certeza que deseja excluir este empréstimo?')) return;
+
+    showLoading();
+    try {
+        const response = await fetch(`${API_BASE_URL}/emprestimos/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error('Erro ao excluir empréstimo');
+
+        loadEmprestimos();
+    } catch (error) {
+        showError('Erro ao excluir empréstimo: ' + error.message);
     } finally {
         hideLoading();
     }

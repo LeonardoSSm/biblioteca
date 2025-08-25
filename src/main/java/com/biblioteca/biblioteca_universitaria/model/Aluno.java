@@ -1,10 +1,12 @@
 package com.biblioteca.biblioteca_universitaria.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.util.List;
 
 @Entity
 @Table(name = "alunos")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Aluno {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,6 +28,7 @@ public class Aluno {
     private String telefone;
 
     @OneToMany(mappedBy = "aluno", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnoreProperties("aluno") // Ignora a propriedade 'aluno' na serialização dos empréstimos
     private List<Emprestimo> emprestimos;
 
     // Construtores
@@ -96,6 +99,7 @@ public class Aluno {
         this.emprestimos = emprestimos;
     }
 
+    // toString sem a lista de empréstimos para evitar loops
     @Override
     public String toString() {
         return "Aluno [id=" + id + ", nome=" + nome + ", matricula=" + matricula +

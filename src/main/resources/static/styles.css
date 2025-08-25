@@ -355,3 +355,66 @@ h2 {
     margin-bottom: 1rem;
     color: #bdc3c7;
 }
+
+.emprestimo-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.emprestimo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status.ativo {
+    background-color: #e7f3ff;
+    color: #0066cc;
+}
+
+.status.finalizado {
+    background-color: #e6f7ee;
+    color: #00a65a;
+}
+
+.status.atrasado {
+    background-color: #fde8e8;
+    color: #cc0000;
+}
+
+.emprestimo-details p {
+    margin: 8px 0;
+}
+
+.btn-finalizar {
+    background-color: #0066cc;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 12px;
+}
+
+.btn-finalizar:hover {
+    background-color: #0052a3;
+}
+
+.no-data {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 20px;
+}

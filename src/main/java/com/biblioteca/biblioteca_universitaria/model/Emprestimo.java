@@ -1,9 +1,11 @@
 package com.biblioteca.biblioteca_universitaria.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Emprestimo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -14,12 +16,14 @@ public class Emprestimo {
 
     private LocalDate dataDevolucao;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "livro_id", nullable = false)
+    @JsonIgnoreProperties({"emprestimos", "autor"}) // Ignora propriedades que podem causar loops
     private Livro livro;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "aluno_id", nullable = false)
+    @JsonIgnoreProperties("emprestimos") // Ignora a propriedade 'emprestimos' na serialização do aluno
     private Aluno aluno;
 
     private String status; // "ATIVO", "FINALIZADO", "ATRASADO"
@@ -83,9 +87,13 @@ public class Emprestimo {
         this.status = status;
     }
 
+    // toString seguro
     @Override
     public String toString() {
+        String livroTitulo = (livro != null) ? livro.getTitulo() : "N/A";
+        String alunoNome = (aluno != null) ? aluno.getNome() : "N/A";
         return "Emprestimo [id=" + id + ", dataEmprestimo=" + dataEmprestimo +
-                ", dataDevolucao=" + dataDevolucao + ", status=" + status + "]";
+                ", dataDevolucao=" + dataDevolucao + ", status=" + status +
+                ", livro=" + livroTitulo + ", aluno=" + alunoNome + "]";
     }
 }
