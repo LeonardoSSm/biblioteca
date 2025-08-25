@@ -1,0 +1,5 @@
+1;Machado de Assis;Brasileiro
+2;Clarice Lispector;Brasileira
+3;Jorge Amado;Brasileiro
+4;José Saramago;Português
+5;Gabriel García Márquez;Colombiano

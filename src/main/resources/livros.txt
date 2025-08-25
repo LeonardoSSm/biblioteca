@@ -1,0 +1,5 @@
+1;Dom Casmurro;9788544001820;1899;1
+2;Memórias Póstumas de Brás Cubas;9788544001821;1881;1
+3;A Hora da Estrela;9788525426257;1977;2
+4;Gabriela, Cravo e Canela;9788525426258;1958;3
+5;Cem Anos de Solidão;9788525426259;1967;5
